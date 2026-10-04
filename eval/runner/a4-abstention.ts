@@ -84,6 +84,10 @@ const ANSWER_SHAPE: Record<string, RegExp> = {
   ceo: /$^/,
 };
 export const ABSTAIN_RE = /(not available|don['’]t know|do not know|no information|not enough information|insufficient|not (?:contain|include|mention|specify|state|provide|list)|does(?:n['’]t| not) (?:contain|include|mention|specify|state|say|provide|list)|(?:is|are)n['’]t (?:mentioned|available|specified|stated|provided|listed)|(?:is|are) not (?:mentioned|available|specified|stated|provided|given|listed)|cannot (?:be )?determined?|can['’]t (?:be )?determined?|unable to (?:determine|answer|find)|no mention|not (?:possible|able) to (?:determine|answer))/i;
+// A refusal followed by a guess is not a useful abstention, even when a
+// free-text value (such as an unseen city or person's name) is absent from
+// this synthetic world's catalog of known values.
+const POST_REFUSAL_GUESS_RE = /(?:but|however)[^.!?]*\b(?:maybe|perhaps|probably|likely|might be|could be)\b|\b(?:maybe|perhaps|probably|likely)\b[^.!?]*$/i;
 
 const norm = (s: string) => s.toLowerCase().replace(/(\d),(\d)/g, '$1$2').replace(/[*_`]/g, '').replace(/\s+/g, ' ');
 
@@ -121,6 +125,7 @@ export function scoreAnswer(q: Pick<A4Question, 'attribute' | 'answer' | 'siblin
   const others = (values[q.attribute] ?? []).filter(v => v !== q.answer && states(final, q.attribute, v));
   if ((q.sibling_value && states(final, q.attribute, q.sibling_value)) || others.length) return { outcome: 'wrong_source', final, hedged: abstains };
   if (ANSWER_SHAPE[q.attribute]?.test(norm(final))) return { outcome: 'wrong', final, hedged: abstains };
+  if (abstains && POST_REFUSAL_GUESS_RE.test(final)) return { outcome: 'unscorable', final, hedged: true };
   if (abstains) return { outcome: 'abstain', final, hedged: false };
   return { outcome: 'unscorable', final, hedged: false };
 }
