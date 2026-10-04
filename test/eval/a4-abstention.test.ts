@@ -45,6 +45,12 @@ describe('A4 answer scorer', () => {
     expect(scoreAnswer(q('q001'), 'Final answer: somewhere nice', ledger.values).outcome).toBe('unscorable');
   });
 
+  test('a refusal followed by an uncatalogued guess is not credited as abstention', () => {
+    const city = ledger.questions.find(x => x.cls === 'missing_attribute' && x.attribute === 'hq')!;
+    expect(scoreAnswer(city, 'I do not know, but perhaps it is Atlantis.', ledger.values)).toMatchObject({ outcome: 'unscorable', hedged: true });
+    expect(scoreAnswer(city, IDK, ledger.values).outcome).toBe('abstain');
+  });
+
   test('metrics follow the preregistered denominators; risk is null at zero coverage', () => {
     const allIdk = armMetrics(ledger.questions.map(x => ({ cls: x.cls, outcome: 'abstain' as const })));
     expect(allIdk.coverage).toBe(0);
