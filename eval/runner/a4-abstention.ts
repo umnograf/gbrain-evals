@@ -87,7 +87,7 @@ export const ABSTAIN_RE = /(not available|don['’]t know|do not know|no informa
 // A refusal followed by a guess is not a useful abstention, even when a
 // free-text value (such as an unseen city or person's name) is absent from
 // this synthetic world's catalog of known values.
-const POST_REFUSAL_GUESS_RE = /(?:but|however)[^.!?]*\b(?:maybe|perhaps|probably|likely|might be|could be)\b|\b(?:maybe|perhaps|probably|likely)\b[^.!?]*$/i;
+const POST_REFUSAL_GUESS_RE = /\b(?:maybe|perhaps|probably|possibly|my guess is|i(?:'d| would)? guess|it (?:could|might) be)\b/i;
 
 const norm = (s: string) => s.toLowerCase().replace(/(\d),(\d)/g, '$1$2').replace(/[*_`]/g, '').replace(/\s+/g, ' ');
 
@@ -120,12 +120,15 @@ export function states(text: string, attribute: string, value: string): boolean 
 
 export function scoreAnswer(q: Pick<A4Question, 'attribute' | 'answer' | 'sibling_value'>, text: string, values: Record<string, readonly string[]>): { outcome: Outcome; final: string; hedged: boolean } {
   const final = finalAnswer(text);
-  const abstains = ABSTAIN_RE.test(final);
+  const refusal = ABSTAIN_RE.exec(final);
+  const abstains = refusal !== null;
   if (q.answer && states(final, q.attribute, q.answer)) return { outcome: 'correct', final, hedged: abstains };
   const others = (values[q.attribute] ?? []).filter(v => v !== q.answer && states(final, q.attribute, v));
   if ((q.sibling_value && states(final, q.attribute, q.sibling_value)) || others.length) return { outcome: 'wrong_source', final, hedged: abstains };
   if (ANSWER_SHAPE[q.attribute]?.test(norm(final))) return { outcome: 'wrong', final, hedged: abstains };
-  if (abstains && POST_REFUSAL_GUESS_RE.test(final)) return { outcome: 'unscorable', final, hedged: true };
+  if (refusal && POST_REFUSAL_GUESS_RE.test(final.slice(refusal.index + refusal[0].length))) {
+    return { outcome: 'unscorable', final, hedged: true };
+  }
   if (abstains) return { outcome: 'abstain', final, hedged: false };
   return { outcome: 'unscorable', final, hedged: false };
 }
