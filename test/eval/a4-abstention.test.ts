@@ -50,6 +50,8 @@ describe('A4 answer scorer', () => {
     expect(scoreAnswer(city, 'I do not know, but perhaps it is Atlantis.', ledger.values)).toMatchObject({ outcome: 'unscorable', hedged: true });
     expect(scoreAnswer(city, 'I do not know. It could be Atlantis.', ledger.values)).toMatchObject({ outcome: 'unscorable', hedged: true });
     expect(scoreAnswer(city, 'I do not know, but my guess is Atlantis.', ledger.values)).toMatchObject({ outcome: 'unscorable', hedged: true });
+    expect(scoreAnswer(city, 'I do not know, but perhaps the evidence is incomplete.', ledger.values).outcome).toBe('abstain');
+    expect(scoreAnswer(city, 'I do not know. Maybe the source is outdated.', ledger.values).outcome).toBe('abstain');
     expect(scoreAnswer(city, IDK, ledger.values).outcome).toBe('abstain');
   });
 
