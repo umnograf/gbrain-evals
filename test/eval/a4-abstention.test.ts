@@ -48,6 +48,8 @@ describe('A4 answer scorer', () => {
   test('a refusal followed by an uncatalogued guess is not credited as abstention', () => {
     const city = ledger.questions.find(x => x.cls === 'missing_attribute' && x.attribute === 'hq')!;
     expect(scoreAnswer(city, 'I do not know, but perhaps it is Atlantis.', ledger.values)).toMatchObject({ outcome: 'unscorable', hedged: true });
+    expect(scoreAnswer(city, 'I do not know. It could be Atlantis.', ledger.values)).toMatchObject({ outcome: 'unscorable', hedged: true });
+    expect(scoreAnswer(city, 'I do not know, but my guess is Atlantis.', ledger.values)).toMatchObject({ outcome: 'unscorable', hedged: true });
     expect(scoreAnswer(city, IDK, ledger.values).outcome).toBe('abstain');
   });
 
