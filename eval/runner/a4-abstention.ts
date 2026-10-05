@@ -87,7 +87,9 @@ export const ABSTAIN_RE = /(not available|don['’]t know|do not know|no informa
 // A refusal followed by a guess is not a useful abstention, even when a
 // free-text value (such as an unseen city or person's name) is absent from
 // this synthetic world's catalog of known values.
-const POST_REFUSAL_GUESS_RE = /\b(?:maybe|perhaps|probably|possibly|my guess is|i(?:'d| would)? guess|it (?:could|might) be)\b/i;
+// The A4 free-text attributes (city and CEO) use proper names. Require one
+// after a speculative cue: "perhaps the evidence is incomplete" still refuses.
+const POST_REFUSAL_GUESS_RE = /\b(?:(?:[Mm]aybe|[Pp]erhaps|[Pp]robably|[Pp]ossibly)\s+(?:it\s+is\s+)?|(?:[Mm]y guess is|[Ii](?:'d| would)? guess|[Ii]t (?:could|might) be)\s+)[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b/;
 
 const norm = (s: string) => s.toLowerCase().replace(/(\d),(\d)/g, '$1$2').replace(/[*_`]/g, '').replace(/\s+/g, ' ');
 
