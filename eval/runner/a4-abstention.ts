@@ -84,6 +84,12 @@ const ANSWER_SHAPE: Record<string, RegExp> = {
   ceo: /$^/,
 };
 export const ABSTAIN_RE = /(not available|don['’]t know|do not know|no information|not enough information|insufficient|not (?:contain|include|mention|specify|state|provide|list)|does(?:n['’]t| not) (?:contain|include|mention|specify|state|say|provide|list)|(?:is|are)n['’]t (?:mentioned|available|specified|stated|provided|listed)|(?:is|are) not (?:mentioned|available|specified|stated|provided|given|listed)|cannot (?:be )?determined?|can['’]t (?:be )?determined?|unable to (?:determine|answer|find)|no mention|not (?:possible|able) to (?:determine|answer))/i;
+// A refusal followed by a guess is not a useful abstention, even when a
+// free-text value (such as an unseen city or person's name) is absent from
+// this synthetic world's catalog of known values.
+// The A4 free-text attributes (city and CEO) use proper names. Require one
+// after a speculative cue: "perhaps the evidence is incomplete" still refuses.
+const POST_REFUSAL_GUESS_RE = /\b(?:(?:[Mm]aybe|[Pp]erhaps|[Pp]robably|[Pp]ossibly)\s+(?:it\s+is\s+)?|(?:[Mm]y guess is|[Ii](?:'d| would)? guess|[Ii]t (?:could|might) be)\s+)[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b/;
 
 const norm = (s: string) => s.toLowerCase().replace(/(\d),(\d)/g, '$1$2').replace(/[*_`]/g, '').replace(/\s+/g, ' ');
 
@@ -116,11 +122,15 @@ export function states(text: string, attribute: string, value: string): boolean 
 
 export function scoreAnswer(q: Pick<A4Question, 'attribute' | 'answer' | 'sibling_value'>, text: string, values: Record<string, readonly string[]>): { outcome: Outcome; final: string; hedged: boolean } {
   const final = finalAnswer(text);
-  const abstains = ABSTAIN_RE.test(final);
+  const refusal = ABSTAIN_RE.exec(final);
+  const abstains = refusal !== null;
   if (q.answer && states(final, q.attribute, q.answer)) return { outcome: 'correct', final, hedged: abstains };
   const others = (values[q.attribute] ?? []).filter(v => v !== q.answer && states(final, q.attribute, v));
   if ((q.sibling_value && states(final, q.attribute, q.sibling_value)) || others.length) return { outcome: 'wrong_source', final, hedged: abstains };
   if (ANSWER_SHAPE[q.attribute]?.test(norm(final))) return { outcome: 'wrong', final, hedged: abstains };
+  if (refusal && POST_REFUSAL_GUESS_RE.test(final.slice(refusal.index + refusal[0].length))) {
+    return { outcome: 'unscorable', final, hedged: true };
+  }
   if (abstains) return { outcome: 'abstain', final, hedged: false };
   return { outcome: 'unscorable', final, hedged: false };
 }
